@@ -6,7 +6,9 @@ from langchain_core.output_parsers import StrOutputParser
 import requests
 
 # URL de tu Ngrok que apunta al FastAPI que sirve el modelo
-COLAB_URL = "https://af5f-34-125-164-191.ngrok-free.app/v1/chat/completions"
+COLAB_URL = "https://1cff-34-125-115-219.ngrok-free.app/v1/chat/completions"
+
+
 
 # Conversión de mensajes a formato JSON esperado por el servidor
 def mensajes_a_json(messages):
