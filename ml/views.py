@@ -10,7 +10,7 @@ import json
 
 
 # URL de tu Ngrok que apunta al FastAPI que sirve el modelo
-COLAB_URL = "https://dc47-34-142-195-197.ngrok-free.app/v1/chat/completions"
+COLAB_URL = "https://73d4-34-16-244-48.ngrok-free.app/v1/chat/completions"
 
 
 class Chatbot:
