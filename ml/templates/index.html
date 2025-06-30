@@ -19,31 +19,34 @@
     <h1>Nutri Fit</h1>
 
 
-    <form action="" method="post">
-        {% csrf_token %}
-        Pregunta :
-          <input
-            type="text"
-            class="form-control"
-            name="mensaje_humano"
-            id=""
-            aria-describedby="helpId"
-            placeholder="Ingrese su mensaje"
-        />
-        <input type="submit" value = "Enviar" >
 
+<form action="" method="post">
+    {% csrf_token %}
+    Pregunta:
+    <input type="text" name="mensaje_humano" class="form-control" placeholder="Ingrese su mensaje">
 
-      
+    <!-- Campo oculto con historial serializado -->
+    <input type="hidden" name="historial" value="{{ historial_serializado }}">
 
-    </form>
+    <input type="submit" value="Enviar">
+</form>
 
 
 
-    <!---<H1> {{response}}</H1>-->
 
-    {% if response %}
-            <h1>RESPUESTA{{response}}</h1>
-    {% endif %}
+{% if historial %}
+    <h2>Historial:</h2>
+    <ul>
+        {% for tipo, mensaje in historial %}
+            <li><strong>{{ tipo|upper }}:</strong> {{ mensaje }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+{% if response %}
+    <h1>Respuesta: {{ response }}</h1>
+{% endif %}
+
        
  
         <script
