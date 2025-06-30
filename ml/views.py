@@ -9,8 +9,32 @@ import requests
 import json
 
 
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Definir el alcance de acceso (Google Sheets + Drive)
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
+
+
+#####################
+import os
+# Obtiene la ruta absoluta del archivo JSON, basado en la ubicación del archivo views.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+json_path = os.path.join(BASE_DIR, 'awesome-griffin-444122-i8-8a38575f1dd6.json')
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+credenciales = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
+# Autorizar el cliente
+cliente = gspread.authorize(credenciales)
+# Abrir la hoja de cálculo por nombre
+spreadsheet = cliente.open('asis').sheet1
+#################
+
+
 # URL de tu Ngrok que apunta al FastAPI que sirve el modelo
-COLAB_URL = "https://cf30-34-87-177-231.ngrok-free.app/v1/chat/completions"
+COLAB_URL = "https://38ad-34-53-98-247.ngrok-free.app/v1/chat/completions"
 
 
 class Chatbot:
@@ -83,15 +107,57 @@ def formulario(request):
         except json.JSONDecodeError:
             historial = []  # Si falla, inicializa lista vacía
 
-        llm = LlamaProxy(COLAB_URL)
-        system_message = "Siempre responde en español, eres de Perú y te llamas Diego Bot."
 
+
+
+        llm = LlamaProxy(COLAB_URL)
+        #mi chat ot es un vendedor de cursos
+        system_message = (
+            "Siempre responde en español. Eres Diego Bot, un vendedor de cursos de Python, Power BI y Excel en Perú. "
+            "Cuando el usuario diga que quiere comprar un curso, dile: 'Perfecto, por favor dime tu nombre, edad y correo en ese orden, separados por comas'. "
+            "Cuando el usuario te dé los datos, responde únicamente con: nombre, edad, correo — en ese orden, separados por comas, sin ninguna palabra adicional. "
+            "Por ejemplo: Yampier Quispe, 34, yamquis@gmail.com"
+        )
+
+        #mi clase de chatbot
         chatbot = Chatbot(llm, system_message=system_message)
         chatbot.chat_conversation = historial
 
         respuesta = chatbot.chat(pregunta)
 
+        
+
+        # Intentar extraer y guardar si el formato es correcto
+        try:
+            # Validamos si hay comas y si hay 3 datos
+            if ',' in respuesta:
+                datos = respuesta.split(',')
+                if len(datos) == 3:
+                    nombre = datos[0].strip()
+                    edad = datos[1].strip()
+                    email = datos[2].strip()
+
+                    # Validación simple (puedes mejorarla)
+                    if nombre and edad.isdigit() and "@" in email:
+                        spreadsheet.append_row([nombre, edad, email])
+                        print(f"✅ Datos añadidos correctamente:\nNombre: {nombre}\nEdad: {edad}\nEmail: {email}")
+                    else:
+                        print("❌ El formato es incorrecto. Verifica que sea: nombre, edad, correo (correo válido).")
+                else:
+                    print("❌ Debes ingresar exactamente tres datos: nombre, edad, correo.")
+            else:
+                print("❌ Formato inválido. Debes usar comas: nombre, edad, correo.")
+
+        except Exception as e:
+            print("❌ Hubo un error al procesar los datos.")
+            print("Error:", e)
+
+
+
+
+
         historial_actualizado = chatbot.chat_conversation
+
         historial_serializado = json.dumps(historial_actualizado)
 
         return render(request, 'index.html', {
