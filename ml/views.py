@@ -9,28 +9,8 @@ import requests
 import json
 
 
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
-# Definir el alcance de acceso (Google Sheets + Drive)
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
 
 
-#####################
-import os
-# Obtiene la ruta absoluta del archivo JSON, basado en la ubicación del archivo views.py
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-json_path = os.path.join(BASE_DIR, 'awesome-griffin-444122-i8-8a38575f1dd6.json')
-scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-credenciales = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
-# Autorizar el cliente
-cliente = gspread.authorize(credenciales)
-# Abrir la hoja de cálculo por nombre
-spreadsheet = cliente.open('asis').sheet1
-#################
 
 
 # URL de tu Ngrok que apunta al FastAPI que sirve el modelo
@@ -126,34 +106,6 @@ def formulario(request):
         respuesta = chatbot.chat(pregunta)
 
         
-
-        # Intentar extraer y guardar si el formato es correcto
-        try:
-            # Validamos si hay comas y si hay 3 datos
-            if ',' in respuesta:
-                datos = respuesta.split(',')
-                if len(datos) == 3:
-                    nombre = datos[0].strip()
-                    edad = datos[1].strip()
-                    email = datos[2].strip()
-
-                    # Validación simple (puedes mejorarla)
-                    if nombre and edad.isdigit() and "@" in email:
-                        spreadsheet.append_row([nombre, edad, email])
-                        print(f"✅ Datos añadidos correctamente:\nNombre: {nombre}\nEdad: {edad}\nEmail: {email}")
-                    else:
-                        print("❌ El formato es incorrecto. Verifica que sea: nombre, edad, correo (correo válido).")
-                else:
-                    print("❌ Debes ingresar exactamente tres datos: nombre, edad, correo.")
-            else:
-                print("❌ Formato inválido. Debes usar comas: nombre, edad, correo.")
-
-        except Exception as e:
-            print("❌ Hubo un error al procesar los datos.")
-            print("Error:", e)
-
-
-
 
 
         historial_actualizado = chatbot.chat_conversation
