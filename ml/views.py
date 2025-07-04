@@ -2,52 +2,18 @@ from django.shortcuts import render
 #################################################
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import Runnable
+#from langchain_core.runnables import Runnable,RunnableParallel
+from langchain_core.runnables import RunnableLambda, RunnableParallel
+
 import requests
 import json
-#############################################################################
+########################################################################################
+import re
+########################################################################################
 
-###########################################################################
+COLAB_URL = "https://744a-34-125-91-66.ngrok-free.app/v1/chat/completions"
 
-class Chatbot:
-    def __init__(self, llm,system_message=''):
-        # This is the same prompt template we used earlier, which a placeholder message for storing conversation history.
-
-        #usando COT
-        chat_conversation_template = ChatPromptTemplate.from_messages([
-            ('system', system_message),
-            ('placeholder', '{chat_conversation}')
-           
-        ])
-
-        # This is the same chain we created above, added to `self` for use by the `chat` method below.
-        self.chat_chain = chat_conversation_template | llm | StrOutputParser()
-
-
-        # Here we instantiate an empty list that will be added to over time.
-        self.chat_conversation = []
-
-
-    # `chat` expects a simple string prompt.
-    def chat(self, prompt):
-        # Append the prompt as a user message to chat conversation.
-        self.chat_conversation.append(('user', prompt))
-
-        response = self.chat_chain.invoke({'chat_conversation': self.chat_conversation})
-        # Append the chain response as an `ai` message to chat conversation.
-        self.chat_conversation.append(('ai', response))
-        # Return the chain response to the user for viewing.
-        return response
-
-    # Clear conversation history.
-    def clear(self):
-        self.chat_conversation = []
-
-
-
-########################################################################################################
-#Estas dos funciones limpian mi respuesta de mi modelo llama para tenerlo lo mas parecido posible al colab
-#1.- Conversión de mensajes a formato JSON esperado por el servidor
+# --- Conversión de mensajes a JSON ---
 def mensajes_a_json(messages):
     resultado = []
     for msg in messages:
@@ -59,8 +25,7 @@ def mensajes_a_json(messages):
             resultado.append({"role": "assistant", "content": msg.content})
     return resultado
 
-#######################################################################################################
-# 2.-Proxy personalizado para comunicar Django con tu API de LLaMA
+# --- Clase que conecta con el modelo vía API ---
 class LlamaProxy:
     def __init__(self, endpoint):
         self.endpoint = endpoint
@@ -72,80 +37,96 @@ class LlamaProxy:
         data = response.json()
         return data["choices"][0]["message"]["content"]
 
-#########################################################################################################
-# URL de tu Ngrok que apunta al FastAPI que sirve el modelo
-COLAB_URL = "https://744a-34-125-91-66.ngrok-free.app/v1/chat/completions"
-llm = LlamaProxy(COLAB_URL)
+# --- Chatbot principal con historia de conversación ---
+class Chatbot:
+    def __init__(self, llm, system_message=''):
+        chat_conversation_template = ChatPromptTemplate.from_messages([
+            ('system', system_message),
+            ('placeholder', '{chat_conversation}')
+        ])
+        self.chat_chain = chat_conversation_template | llm | StrOutputParser()
+        self.chat_conversation = []
 
-#########################################################################################################
-def system_message():
-        vendedor = (
-            "Siempre responde en español. Eres Diego Bot, un vendedor de cursos de Python, Power BI y Excel en Perú. "
-            "Cuando el usuario diga que quiere comprar un curso, dile: 'Perfecto, por favor dime tu nombre, edad y correo en ese orden, separados por comas'. "
-            "Cuando el usuario te dé los datos, responde únicamente con: nombre, edad, correo — en ese orden, separados por comas, sin ninguna palabra adicional. "
-            "Por ejemplo: Yampier Quispe, 34, yamquis@gmail.com"
-        )
-        return vendedor
+    def chat(self, prompt):
+        self.chat_conversation.append(('user', prompt))
+        response = self.chat_chain.invoke({'chat_conversation': self.chat_conversation})
+        self.chat_conversation.append(('ai', response))
+        return response
 
-########################################################################################################3
-#SOLO MODIFICA LA CLASE CHAT BOT Y ESTA FUNCION 
+    def clear(self):
+        self.chat_conversation = []
 
-from langchain_core.runnables import RunnableLambda
+# --- Extraer campos estructurados desde la respuesta AI ---
+def extraer_datos(respuesta):
+    patron = r"^(.*?),\s*(\d+),\s*(\d+),\s*(\d+),\s*(.*?),\s*(.*?),\s*(.*?)$"
+    match = re.match(patron, respuesta)
+    if match:
+        return {
+            "nombre": match.group(1),
+            "edad": int(match.group(2)),
+            "peso": int(match.group(3)),
+            "estatura": int(match.group(4)),
+            "actividad": match.group(5),
+            "objetivo": match.group(6),
+            "correo": match.group(7)
+        }
+    return None
 
+# --- Cadenas paralelas: extraer múltiples datos a la vez ---
+
+extraer_nombre = RunnableLambda(lambda x: {"nombre": x["input"].split(",")[0].strip()})
+extraer_edad = RunnableLambda(lambda x: {"edad": x["input"].split(",")[1].strip()})
+extraer_peso = RunnableLambda(lambda x: {"peso": x["input"].split(",")[2].strip()})
+
+
+extraer_datos_paralelo = RunnableParallel({
+    "nombre": extraer_nombre,
+    "edad": extraer_edad,
+    "peso": extraer_peso
+})
+
+# --- Vista principal del chatbot ---
 def formulario(request):
     if request.method == 'POST':
-        #pregunta del humano
-        pregunta = float(request.POST['mensaje_humano'])
-
-        # Recuperar historial como string o lista vacía por defecto
+        pregunta = request.POST['mensaje_humano']
         historial_str = request.POST.get('historial', '[]')
-
-##########################################################################3
-
-       #def double(x):y = int(x)return 2*y"""
-           
-
-#        runnable_double = RunnableLambda(double)
-
-  #      multiply_by_eight = runnable_double | runnable_double | runnable_double
-
- #       numero_n = multiply_by_eight.invoke(pregunta)
-###########################################################################
         try:
             historial = json.loads(historial_str)
         except json.JSONDecodeError:
-            historial = []  # Si falla, inicializa lista vacía
+            historial = []
 
-###########################################################################
-        #mi clase de chatbot
-        chatbot = Chatbot(llm, system_message= system_message())
+        llm = LlamaProxy(COLAB_URL)
+
+        system_message = (
+            "Siempre responde en español. Eres Diego Bot, un nutricionista profesional en Perú. "
+            "Primero piensa paso a paso (cadena de pensamiento) antes de responder. "
+            "Cuando el usuario diga que quiere una asesoría nutricional, dile: "
+            "'Perfecto. Por favor indícame tu nombre completo, edad, peso en kilogramos, estatura en centímetros, "
+            "nivel de actividad física (sedentario, moderado o activo), objetivo (bajar de peso, ganar masa muscular o mantener peso) "
+            "y tu correo electrónico. Todo en ese orden, separado por comas.' "
+            "Cuando el usuario te proporcione estos datos, responde únicamente con: nombre completo, edad, peso, estatura, nivel de actividad, objetivo, correo — "
+            "en ese orden, separados por comas, sin ninguna palabra adicional."
+        )
+
+        chatbot = Chatbot(llm, system_message=system_message)
         chatbot.chat_conversation = historial
 
-######################################################################################
-
         respuesta = chatbot.chat(pregunta)
-        historial_actualizado = chatbot.chat_conversation #RECIBO EL HISTORIAL DEL CHAT DE MI CLASE
+        datos_estructurados = extraer_datos(respuesta)
 
-#####################################################################################
+        # (opcional) extracción en paralelo solo nombre, edad y peso
+        paralelo = extraer_datos_paralelo.invoke({"input": respuesta})
 
+        historial_actualizado = chatbot.chat_conversation
         historial_serializado = json.dumps(historial_actualizado)
 
         return render(request, 'index.html', {
             "response": respuesta,
             "historial": historial_actualizado,
-            "historial_serializado": historial_serializado
+            "historial_serializado": historial_serializado,
+            "datos": datos_estructurados,
+            "paralelo": paralelo
         })
 
     return render(request, 'index.html', {"historial_serializado": "[]"})
 
-
-
-
-""""Cadenas
-Combinacion de Cadenas 
-Cadenas Paralelas
-Funciones ejecutables (Runnable)
-Mensajes de Sistema
-Mensajes IA
-Cadena de Pensamiento(CoT)
-Salidas estructuradas"""

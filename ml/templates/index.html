@@ -1,103 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Bot</title>
+    <title>Dr. Bot - Asistente Médico</title>
 
-    <!-- Bootstrap CSS -->
+    <!-- Bootstrap CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Tus estilos personalizados -->
     <style>
+        body {
+            background-color: #f0f4f8;
+            color: #333;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .navbar {
+            background-color: white;
+            border-bottom: 1px solid #dee2e6;
+        }
+
         .bot-mensaje {
-            background-color: #980750; /* Color vino o fucsia oscuro */
-            color: #f6f6f6;            
+            background-color: #007bff;
+            color: white;
         }
 
         .mensaje-humano {
-            background-color: #056f0e; /* Verde */
+            background-color: #20c997;
             color: white;
+        }
+
+        .chat-card {
+            border-radius: 16px;
+        }
+
+        .chat-header {
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+        }
+
+        .chat-footer {
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+
+        .doctor-img {
+            max-width: 100%;
+            border-radius: 12px;
+        }
+
+        .chat-body {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
+
+        @media (max-width: 576px) {
+            .chat-body {
+                height: 300px;
+            }
         }
     </style>
 </head>
-
 <body>
-    
-    <!-- ENCABEZADO ESTILO ETL Academy -->
-    <nav class="navbar bg-white shadow-sm">
-        <div class="container">
+
+    <!-- NAVBAR -->
+    <nav class="navbar shadow-sm">
+        <div class="container d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-                <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Logo" width="30" height="30" class="me-2">
-                <span class="fw-bold">ETLs Academy</span>
+                <img src="https://cdn-icons-png.flaticon.com/512/2965/2965567.png" alt="Doctor Icon" width="32" class="me-2">
+                <span class="fw-bold fs-5 text-primary">Dr. Bot</span>
             </div>
-            <div class="d-flex align-items-center">
-                <span class="me-3"><i class="bi bi-people"></i> +1000 estudiantes</span>
-                <span><i class="bi bi-patch-check"></i> Certificación incluida</span>
+            <div>
+                <i class="bi bi-shield-check me-2 text-success"></i>Confidencial
+                <i class="bi bi-clock-history text-secondary ms-3"></i>24/7
             </div>
         </div>
     </nav>
 
+    <!-- HERO SECTION -->
     <div class="container text-center mt-4">
-        <h2 class="fw-bold">¿Listo para dar el siguiente paso en tu carrera?</h2>
-        <p>Descubre nuestros cursos especializados en Excel, Python y Power BI. Nuestro asistente virtual te ayudará a encontrar el curso perfecto para ti.</p>
+        <h2 class="fw-bold">Consulta médica inmediata</h2>
+        <p class="text-muted">Nuestro asistente virtual puede orientarte sobre síntomas, especialidades o pasos para agendar una cita.</p>
+       
     </div>
 
-    <div class="container mt-5" style="max-width: 500px;">
-
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <strong>ETL Diego Bot</strong><br>
-                <small>Tu asistente para cursos online</small>
+    <!-- CHAT CONTAINER -->
+    <div class="container" style="max-width: 550px;">
+        <div class="card shadow chat-card">
+            <div class="card-header bg-primary text-white chat-header">
+                <strong><i class="bi bi-robot"></i> Dr. Bot</strong><br>
+                <small>Asistente virtual de salud</small>
             </div>
 
-            <div class="card-body" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
-                
-{% if historial %}
-    {% for tipo, mensaje in historial %}
-        {% if tipo == 'ai' %}
-            <div class="d-flex mb-3">
-                <div class="p-2 rounded shadow-sm bot-mensaje">
-                    <strong>Bot:</strong> {{ mensaje }}
-                </div>
-            </div>
-        {% elif tipo == 'user' %}
-            <div class="d-flex mb-3 justify-content-end">
-                <div class="p-2 rounded shadow-sm mensaje-humano">
-                    {{ mensaje }}
-                </div>
-            </div>
-        {% endif %}
-    {% endfor %}
-{% else %}
-
-    <div class="text-center text-muted mt-5">
-        No hay mensajes todavía, ¡Empieza la conversación!
-    </div>
-{% endif %}
-
-
+            <div class="card-body chat-body">
+                {% if historial %}
+                    {% for tipo, mensaje in historial %}
+                        {% if tipo == 'ai' %}
+                            <div class="d-flex mb-3">
+                                <div class="p-2 rounded shadow-sm bot-mensaje">
+                                    <strong>Dr. Bot:</strong> {{ mensaje }}
+                                </div>
+                            </div>
+                        {% elif tipo == 'user' %}
+                            <div class="d-flex mb-3 justify-content-end">
+                                <div class="p-2 rounded shadow-sm mensaje-humano">
+                                    {{ mensaje }}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted mt-5">
+                        No hay mensajes todavía, ¡empieza la conversación!
+                    </div>
+                {% endif %}
             </div>
 
-            <div class="card-footer bg-white">
+            <div class="card-footer chat-footer bg-white">
                 <form action="" method="post" class="d-flex">
                     {% csrf_token %}
-                    <input type="text" name="mensaje_humano" class="form-control me-2" placeholder="Escribe tu mensaje..." autocomplete="off">
+                    <input type="text" name="mensaje_humano" class="form-control me-2" placeholder="Describe tus síntomas..." autocomplete="off">
                     <input type="hidden" name="historial" value="{{ historial_serializado }}">
-
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send"></i>
                     </button>
                 </form>
             </div>
-
         </div>
     </div>
-
-    <br><br><br>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
