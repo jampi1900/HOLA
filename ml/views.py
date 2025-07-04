@@ -11,7 +11,7 @@ import json
 import re
 ########################################################################################
 
-COLAB_URL = "https://744a-34-125-91-66.ngrok-free.app/v1/chat/completions"
+COLAB_URL = "https://54c5-34-16-196-175.ngrok-free.app/v1/chat/completions"
 
 # --- Conversión de mensajes a JSON ---
 def mensajes_a_json(messages):
