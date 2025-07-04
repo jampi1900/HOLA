@@ -1,35 +1,32 @@
 from django.shortcuts import render
-
-
+#################################################
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
 import requests
-
 import json
+#############################################################################
 
-
-
-
-
-
-# URL de tu Ngrok que apunta al FastAPI que sirve el modelo
-COLAB_URL = "https://38ad-34-53-98-247.ngrok-free.app/v1/chat/completions"
-
+###########################################################################
 
 class Chatbot:
     def __init__(self, llm,system_message=''):
         # This is the same prompt template we used earlier, which a placeholder message for storing conversation history.
+
+        #usando COT
         chat_conversation_template = ChatPromptTemplate.from_messages([
             ('system', system_message),
             ('placeholder', '{chat_conversation}')
+           
         ])
 
         # This is the same chain we created above, added to `self` for use by the `chat` method below.
         self.chat_chain = chat_conversation_template | llm | StrOutputParser()
 
+
         # Here we instantiate an empty list that will be added to over time.
         self.chat_conversation = []
+
 
     # `chat` expects a simple string prompt.
     def chat(self, prompt):
@@ -48,7 +45,9 @@ class Chatbot:
 
 
 
-# Conversión de mensajes a formato JSON esperado por el servidor
+########################################################################################################
+#Estas dos funciones limpian mi respuesta de mi modelo llama para tenerlo lo mas parecido posible al colab
+#1.- Conversión de mensajes a formato JSON esperado por el servidor
 def mensajes_a_json(messages):
     resultado = []
     for msg in messages:
@@ -60,7 +59,8 @@ def mensajes_a_json(messages):
             resultado.append({"role": "assistant", "content": msg.content})
     return resultado
 
-# Proxy personalizado para comunicar Django con tu API de LLaMA
+#######################################################################################################
+# 2.-Proxy personalizado para comunicar Django con tu API de LLaMA
 class LlamaProxy:
     def __init__(self, endpoint):
         self.endpoint = endpoint
@@ -72,43 +72,61 @@ class LlamaProxy:
         data = response.json()
         return data["choices"][0]["message"]["content"]
 
+#########################################################################################################
+# URL de tu Ngrok que apunta al FastAPI que sirve el modelo
+COLAB_URL = "https://744a-34-125-91-66.ngrok-free.app/v1/chat/completions"
+llm = LlamaProxy(COLAB_URL)
 
-
-
-def formulario(request):
-    if request.method == 'POST':
-        pregunta = request.POST['mensaje_humano']
-
-        # Recuperar historial como string o lista vacía por defecto
-        historial_str = request.POST.get('historial', '[]')
-
-        try:
-            historial = json.loads(historial_str)
-        except json.JSONDecodeError:
-            historial = []  # Si falla, inicializa lista vacía
-
-
-
-
-        llm = LlamaProxy(COLAB_URL)
-        #mi chat ot es un vendedor de cursos
-        system_message = (
+#########################################################################################################
+def system_message():
+        vendedor = (
             "Siempre responde en español. Eres Diego Bot, un vendedor de cursos de Python, Power BI y Excel en Perú. "
             "Cuando el usuario diga que quiere comprar un curso, dile: 'Perfecto, por favor dime tu nombre, edad y correo en ese orden, separados por comas'. "
             "Cuando el usuario te dé los datos, responde únicamente con: nombre, edad, correo — en ese orden, separados por comas, sin ninguna palabra adicional. "
             "Por ejemplo: Yampier Quispe, 34, yamquis@gmail.com"
         )
+        return vendedor
 
+########################################################################################################3
+#SOLO MODIFICA LA CLASE CHAT BOT Y ESTA FUNCION 
+
+from langchain_core.runnables import RunnableLambda
+
+def formulario(request):
+    if request.method == 'POST':
+        #pregunta del humano
+        pregunta = float(request.POST['mensaje_humano'])
+
+        # Recuperar historial como string o lista vacía por defecto
+        historial_str = request.POST.get('historial', '[]')
+
+##########################################################################3
+
+       #def double(x):y = int(x)return 2*y"""
+           
+
+#        runnable_double = RunnableLambda(double)
+
+  #      multiply_by_eight = runnable_double | runnable_double | runnable_double
+
+ #       numero_n = multiply_by_eight.invoke(pregunta)
+###########################################################################
+        try:
+            historial = json.loads(historial_str)
+        except json.JSONDecodeError:
+            historial = []  # Si falla, inicializa lista vacía
+
+###########################################################################
         #mi clase de chatbot
-        chatbot = Chatbot(llm, system_message=system_message)
+        chatbot = Chatbot(llm, system_message= system_message())
         chatbot.chat_conversation = historial
 
+######################################################################################
+
         respuesta = chatbot.chat(pregunta)
+        historial_actualizado = chatbot.chat_conversation #RECIBO EL HISTORIAL DEL CHAT DE MI CLASE
 
-        
-
-
-        historial_actualizado = chatbot.chat_conversation
+#####################################################################################
 
         historial_serializado = json.dumps(historial_actualizado)
 
@@ -119,3 +137,15 @@ def formulario(request):
         })
 
     return render(request, 'index.html', {"historial_serializado": "[]"})
+
+
+
+
+""""Cadenas
+Combinacion de Cadenas 
+Cadenas Paralelas
+Funciones ejecutables (Runnable)
+Mensajes de Sistema
+Mensajes IA
+Cadena de Pensamiento(CoT)
+Salidas estructuradas"""
