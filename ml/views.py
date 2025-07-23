@@ -11,7 +11,7 @@ import json
 import re
 ########################################################################################
 
-COLAB_URL = "https://54c5-34-16-196-175.ngrok-free.app/v1/chat/completions"
+COLAB_URL = "https://1d8f-34-142-173-31.ngrok-free.app/v1/chat/completions"
 
 # --- Conversión de mensajes a JSON ---
 def mensajes_a_json(messages):
@@ -57,6 +57,7 @@ class Chatbot:
         self.chat_conversation = []
 
 # --- Extraer campos estructurados desde la respuesta AI ---
+"""
 def extraer_datos(respuesta):
     patron = r"^(.*?),\s*(\d+),\s*(\d+),\s*(\d+),\s*(.*?),\s*(.*?),\s*(.*?)$"
     match = re.match(patron, respuesta)
@@ -71,19 +72,20 @@ def extraer_datos(respuesta):
             "correo": match.group(7)
         }
     return None
+"""
 
 # --- Cadenas paralelas: extraer múltiples datos a la vez ---
 
-extraer_nombre = RunnableLambda(lambda x: {"nombre": x["input"].split(",")[0].strip()})
-extraer_edad = RunnableLambda(lambda x: {"edad": x["input"].split(",")[1].strip()})
-extraer_peso = RunnableLambda(lambda x: {"peso": x["input"].split(",")[2].strip()})
+#extraer_nombre = RunnableLambda(lambda x: {"nombre": x["input"].split(",")[0].strip()})
+#extraer_edad = RunnableLambda(lambda x: {"edad": x["input"].split(",")[1].strip()})
+#extraer_peso = RunnableLambda(lambda x: {"peso": x["input"].split(",")[2].strip()})
 
 
-extraer_datos_paralelo = RunnableParallel({
-    "nombre": extraer_nombre,
-    "edad": extraer_edad,
-    "peso": extraer_peso
-})
+#extraer_datos_paralelo = RunnableParallel({
+#    "nombre": extraer_nombre,
+#    "edad": extraer_edad,
+#    "peso": extraer_peso
+#})
 
 # --- Vista principal del chatbot ---
 def formulario(request):
@@ -106,16 +108,18 @@ def formulario(request):
             "y tu correo electrónico. Todo en ese orden, separado por comas.' "
             "Cuando el usuario te proporcione estos datos, responde únicamente con: nombre completo, edad, peso, estatura, nivel de actividad, objetivo, correo — "
             "en ese orden, separados por comas, sin ninguna palabra adicional."
+            "SIEMPRE RESPONDE DE MANERA CORTA Y PRECIZA SIN EXPLICACIONES ADICIONALES."
+            "Eres un experto en pokemon y puedes responder preguntas sobre ellos. "
         )
 
         chatbot = Chatbot(llm, system_message=system_message)
         chatbot.chat_conversation = historial
 
         respuesta = chatbot.chat(pregunta)
-        datos_estructurados = extraer_datos(respuesta)
+        #datos_estructurados = extraer_datos(respuesta)
 
         # (opcional) extracción en paralelo solo nombre, edad y peso
-        paralelo = extraer_datos_paralelo.invoke({"input": respuesta})
+        #paralelo = extraer_datos_paralelo.invoke({"input": respuesta})
 
         historial_actualizado = chatbot.chat_conversation
         historial_serializado = json.dumps(historial_actualizado)
@@ -123,9 +127,9 @@ def formulario(request):
         return render(request, 'index.html', {
             "response": respuesta,
             "historial": historial_actualizado,
-            "historial_serializado": historial_serializado,
-            "datos": datos_estructurados,
-            "paralelo": paralelo
+            "historial_serializado": historial_serializado
+            #"datos": datos_estructurados,
+            #"paralelo": paralelo
         })
 
     return render(request, 'index.html', {"historial_serializado": "[]"})
